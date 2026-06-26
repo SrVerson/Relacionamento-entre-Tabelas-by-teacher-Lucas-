@@ -1,0 +1,14 @@
+SELECT 
+  t.id,
+  l.country AS país,
+  t.tournament_date AS data,
+  l.city AS cidade,
+  s.stage_name AS etapa,
+  STRING_AGG(p.full_name, ', ') AS jogadores
+FROM tournament_of_beach_volleyball t
+JOIN tournament_locations l ON t.id = l.tournament_id
+JOIN tournament_stages s ON t.id = s.tournament_id
+LEFT JOIN tournament_players tp ON t.id = tp.tournament_id
+LEFT JOIN players p ON tp.player_id = p.id
+GROUP BY t.id, l.country, t.tournament_date, l.city, s.stage_name, s.stage_date
+ORDER BY t.tournament_date, s.stage_date;
