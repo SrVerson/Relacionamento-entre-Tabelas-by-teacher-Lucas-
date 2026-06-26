@@ -1,0 +1,26 @@
+create table public.tournament_players (
+  tournament_id uuid not null,
+  player_id uuid not null,
+  position character varying(30) not null,
+  constraint tournament_players_pkey primary key (tournament_id, player_id),
+  constraint tournament_players_player_id_fkey foreign KEY (player_id) references players (id) on delete CASCADE,
+  constraint tournament_players_tournament_id_fkey foreign KEY (tournament_id) references tournament_of_beach_volleyball (id) on delete CASCADE,
+  constraint tournament_players_position_check check (
+    (
+      ("position")::text = any (
+        (
+          array[
+            'Atacante'::character varying,
+            'Bloqueador'::character varying,
+            'Defesa'::character varying,
+            'Reserva'::character varying
+          ]
+        )::text[]
+      )
+    )
+  )
+) TABLESPACE pg_default;
+
+create index IF not exists idx_tournament_players_tournament_id on public.tournament_players using btree (tournament_id) TABLESPACE pg_default;
+
+create index IF not exists idx_tournament_players_player_id on public.tournament_players using btree (player_id) TABLESPACE pg_default;
