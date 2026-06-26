@@ -1,0 +1,149 @@
+-- ==========================================
+-- SCHEMA: Tournament of Beach VolleyBall
+-- Plataforma: Supabase (PostgreSQL 15+)
+-- Relacionamentos: 1:1 · 1:N · N:N
+-- ==========================================
+
+-- 1. TABELA PRINCIPAL (Torneios)
+CREATE TABLE tournament_of_beach_volleyball (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  tournament_name TEXT NOT NULL,
+  tournament_date DATE NOT NULL
+);
+
+-- 2. RELACIONAMENTO 1:1: Localização
+-- Cada torneio possui EXATAMENTE um registro de cidade/país.
+-- A constraint UNIQUE garante o 1:1.
+CREATE TABLE tournament_locations (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  tournament_id UUID NOT NULL UNIQUE REFERENCES tournament_of_beach_volleyball(id) ON DELETE CASCADE,
+  country VARCHAR(100) NOT NULL,
+  city VARCHAR(100) NOT NULL
+);
+
+-- 3. RELACIONAMENTO 1:N: Etapas
+-- Um torneio pode ter VÁRIAS etapas (Qualificatórias, Fase de Grupos, Final, etc.)
+CREATE TABLE tournament_stages (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  tournament_id UUID NOT NULL REFERENCES tournament_of_beach_volleyball(id) ON DELETE CASCADE,
+  stage_name VARCHAR(50) NOT NULL,
+  stage_date DATE NOT NULL
+);
+
+-- 4. TABELA DE JOGADORES (Base para N:N)
+CREATE TABLE players (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  full_name VARCHAR(150) NOT NULL,
+  nationality VARCHAR(100) NOT NULL
+);
+
+-- 5. RELACIONAMENTO N:N: Vínculo Torneio <-> Jogadores
+-- Tabela de junção (junction table). Permite que um jogador participe de vários torneios
+-- e que um torneio tenha vários jogadores.
+CREATE TABLE tournament_players (
+  tournament_id UUID NOT NULL REFERENCES tournament_of_beach_volleyball(id) ON DELETE CASCADE,
+  player_id UUID NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  position VARCHAR(30) NOT NULL CHECK (position IN ('Atacante', 'Bloqueador', 'Defesa', 'Reserva')),
+  PRIMARY KEY (tournament_id, player_id)
+);
+
+-- Índices de desempenho (recomendado no Supabase para FKs)
+CREATE INDEX idx_tournament_locations_tournament_id ON tournament_locations(tournament_id);
+CREATE INDEX idx_tournament_stages_tournament_id ON tournament_stages(tournament_id);
+CREATE INDEX idx_tournament_players_tournament_id ON tournament_players(tournament_id);
+CREATE INDEX idx_tournament_players_player_id ON tournament_players(player_id);
+
+-- ==========================================
+-- INSERÇÃO DE DADOS (10 Torneios na tabela principal)
+-- ==========================================
+
+-- 1. Torneios
+INSERT INTO tournament_of_beach_volleyball (id, tournament_name, tournament_date) VALUES
+('a1b1c1d1-0001-4000-8000-000000000001', 'Circuito Brasileiro - Etapa RJ', '2024-03-15'),
+('a1b1c1d1-0002-4000-8000-000000000002', 'FIVB Beach Pro Tour - Saquarema', '2024-04-20'),
+('a1b1c1d1-0003-4000-8000-000000000003', 'European Championship Qualifiers', '2024-05-10'),
+('a1b1c1d1-0004-4000-8000-000000000004', 'US Open Beach Championship', '2024-06-05'),
+('a1b1c1d1-0005-4000-8000-000000000005', 'Italian Beach Series - Roma', '2024-07-12'),
+('a1b1c1d1-0006-4000-8000-000000000006', 'Australian Beach Open', '2024-08-18'),
+('a1b1c1d1-0007-4000-8000-000000000007', 'Mexican Pacific Cup', '2024-09-22'),
+('a1b1c1d1-0008-4000-8000-000000000008', 'South American Beach Games', '2024-10-05'),
+('a1b1c1d1-0009-4000-8000-000000000009', 'Mediterranean Challenge', '2024-11-01'),
+('a1b1c1d1-0010-4000-8000-000000000010', 'World Qualifier - Dubai', '2024-12-10');
+
+-- 2. Localizações (1:1)
+INSERT INTO tournament_locations (tournament_id, country, city) VALUES
+('a1b1c1d1-0001-4000-8000-000000000001', 'Brasil', 'Rio de Janeiro'),
+('a1b1c1d1-0002-4000-8000-000000000002', 'Brasil', 'Saquarema'),
+('a1b1c1d1-0003-4000-8000-000000000003', 'Espanha', 'Málaga'),
+('a1b1c1d1-0004-4000-8000-000000000004', 'EUA', 'Los Angeles'),
+('a1b1c1d1-0005-4000-8000-000000000005', 'Itália', 'Roma'),
+('a1b1c1d1-0006-4000-8000-000000000006', 'Austrália', 'Sydney'),
+('a1b1c1d1-0007-4000-8000-000000000007', 'México', 'Cancún'),
+('a1b1c1d1-0008-4000-8000-000000000008', 'Argentina', 'Mar del Plata'),
+('a1b1c1d1-0009-4000-8000-000000000009', 'Grécia', 'Atenas'),
+('a1b1c1d1-0010-4000-8000-000000000010', 'Emirados Árabes', 'Dubai');
+
+-- 3. Etapas (1:N)
+INSERT INTO tournament_stages (tournament_id, stage_name, stage_date) VALUES
+('a1b1c1d1-0001-4000-8000-000000000001', 'Qualificatórias', '2024-03-15'),
+('a1b1c1d1-0001-4000-8000-000000000001', 'Fase Final', '2024-03-17'),
+('a1b1c1d1-0002-4000-8000-000000000002', 'Fase de Grupos', '2024-04-20'),
+('a1b1c1d1-0002-4000-8000-000000000002', 'Oitavas de Final', '2024-04-21'),
+('a1b1c1d1-0002-4000-8000-000000000002', 'Grande Final', '2024-04-22'),
+('a1b1c1d1-0003-4000-8000-000000000003', 'Eliminatórias', '2024-05-10'),
+('a1b1c1d1-0003-4000-8000-000000000003', 'Semifinal e Final', '2024-05-12'),
+('a1b1c1d1-0004-4000-8000-000000000004', 'Qualifiers', '2024-06-05'),
+('a1b1c1d1-0004-4000-8000-000000000004', 'Main Draw', '2024-06-07'),
+('a1b1c1d1-0005-4000-8000-000000000005', 'Fase Inicial', '2024-07-12'),
+('a1b1c1d1-0005-4000-8000-000000000005', 'Final Four', '2024-07-14'),
+('a1b1c1d1-0006-4000-8000-000000000006', 'Group Stage', '2024-08-18'),
+('a1b1c1d1-0006-4000-8000-000000000006', 'Knockout', '2024-08-20'),
+('a1b1c1d1-0007-4000-8000-000000000007', 'Ronda 1', '2024-09-22'),
+('a1b1c1d1-0007-4000-8000-000000000007', 'Ronda 2', '2024-09-23'),
+('a1b1c1d1-0008-4000-8000-000000000008', 'Preliminares', '2024-10-05'),
+('a1b1c1d1-0008-4000-8000-000000000008', 'Disputa de Medalhas', '2024-10-07'),
+('a1b1c1d1-0009-4000-8000-000000000009', 'Fase 1', '2024-11-01'),
+('a1b1c1d1-0009-4000-8000-000000000009', 'Final', '2024-11-03'),
+('a1b1c1d1-0010-4000-8000-000000000010', 'Qualifying', '2024-12-10'),
+('a1b1c1d1-0010-4000-8000-000000000010', 'Main Event', '2024-12-12');
+
+-- 4. Jogadores (Base para N:N)
+INSERT INTO players (id, full_name, nationality) VALUES
+('b1b1c1d1-0001-4000-8000-000000000001', 'Alison Cerutti', 'Brasil'),
+('b1b1c1d1-0002-4000-8000-000000000002', 'Bruno Oscar Schmidt', 'Brasil'),
+('b1b1c1d1-0003-4000-8000-000000000003', 'Mol Sorum', 'Noruega'),
+('b1b1c1d1-0004-4000-8000-000000000004', 'Christian Sørum', 'Noruega'),
+('b1b1c1d1-0005-4000-8000-000000000005', 'Jake Gibb', 'EUA'),
+('b1b1c1d1-0006-4000-8000-000000000006', 'Taylor Crabb', 'EUA'),
+('b1b1c1d1-0007-4000-8000-000000000007', 'Adrian Carambula', 'Itália'),
+('b1b1c1d1-0008-4000-8000-000000000008', 'Enrico Rossi', 'Itália'),
+('b1b1c1d1-0009-4000-8000-000000000009', 'Julius Thole', 'Alemanha'),
+('b1b1c1d1-0010-4000-8000-000000000010', 'Clemens Wickler', 'Alemanha'),
+('b1b1c1d1-0011-4000-8000-000000000011', 'David Åhman', 'Suécia'),
+('b1b1c1d1-0012-4000-8000-000000000012', 'Jonatan Hellvig', 'Suécia'),
+('b1b1c1d1-0013-4000-8000-000000000013', 'Pablo Herrera', 'Espanha'),
+('b1b1c1d1-0014-4000-8000-000000000014', 'Adrián Gavira', 'Espanha'),
+('b1b1c1d1-0015-4000-8000-000000000015', 'Marco Grimalt', 'Chile');
+
+-- 5. N:N: Jogadores vinculados aos Torneios
+INSERT INTO tournament_players (tournament_id, player_id, position) VALUES
+('a1b1c1d1-0001-4000-8000-000000000001', 'b1b1c1d1-0001-4000-8000-000000000001', 'Atacante'),
+('a1b1c1d1-0001-4000-8000-000000000001', 'b1b1c1d1-0002-4000-8000-000000000002', 'Bloqueador'),
+('a1b1c1d1-0002-4000-8000-000000000002', 'b1b1c1d1-0003-4000-8000-000000000003', 'Atacante'),
+('a1b1c1d1-0002-4000-8000-000000000002', 'b1b1c1d1-0004-4000-8000-000000000004', 'Bloqueador'),
+('a1b1c1d1-0003-4000-8000-000000000003', 'b1b1c1d1-0013-4000-8000-000000000013', 'Atacante'),
+('a1b1c1d1-0003-4000-8000-000000000003', 'b1b1c1d1-0014-4000-8000-000000000014', 'Bloqueador'),
+('a1b1c1d1-0004-4000-8000-000000000004', 'b1b1c1d1-0005-4000-8000-000000000005', 'Atacante'),
+('a1b1c1d1-0004-4000-8000-000000000004', 'b1b1c1d1-0006-4000-8000-000000000006', 'Bloqueador'),
+('a1b1c1d1-0005-4000-8000-000000000005', 'b1b1c1d1-0007-4000-8000-000000000007', 'Atacante'),
+('a1b1c1d1-0005-4000-8000-000000000005', 'b1b1c1d1-0008-4000-8000-000000000008', 'Bloqueador'),
+('a1b1c1d1-0006-4000-8000-000000000006', 'b1b1c1d1-0012-4000-8000-000000000012', 'Atacante'),
+('a1b1c1d1-0006-4000-8000-000000000006', 'b1b1c1d1-0011-4000-8000-000000000011', 'Bloqueador'),
+('a1b1c1d1-0007-4000-8000-000000000007', 'b1b1c1d1-0001-4000-8000-000000000001', 'Atacante'),
+('a1b1c1d1-0007-4000-8000-000000000007', 'b1b1c1d1-0003-4000-8000-000000000003', 'Bloqueador'),
+('a1b1c1d1-0008-4000-8000-000000000008', 'b1b1c1d1-0009-4000-8000-000000000009', 'Atacante'),
+('a1b1c1d1-0008-4000-8000-000000000008', 'b1b1c1d1-0010-4000-8000-000000000010', 'Bloqueador'),
+('a1b1c1d1-0009-4000-8000-000000000009', 'b1b1c1d1-0005-4000-8000-000000000005', 'Atacante'),
+('a1b1c1d1-0009-4000-8000-000000000009', 'b1b1c1d1-0013-4000-8000-000000000013', 'Bloqueador'),
+('a1b1c1d1-0010-4000-8000-000000000010', 'b1b1c1d1-0002-4000-8000-000000000002', 'Atacante'),
+('a1b1c1d1-0010-4000-8000-000000000010', 'b1b1c1d1-0007-4000-8000-000000000007', 'Bloqueador');
